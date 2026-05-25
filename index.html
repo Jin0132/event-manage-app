@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4285f4" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./icons/app-icon-192.svg" />
+    <title>One Meeting - 1回きりの集まりをうまく管理しよう！</title>
+    <meta name="description" content="1回きりの集まりをうまく管理しよう！" />
+    <meta property="og:title" content="One Meeting" />
+    <meta property="og:site_name" content="One Meeting" />
+    <meta property="og:description" content="1回きりの集まりをうまく管理しよう！" />
+    <script>
+      (function() {
+        var ua = navigator.userAgent || navigator.vendor || window.opera;
+        var isWebView = /Line|Instagram|FBAN|FBAV|FBIOS|Twitter|MicroMessenger|Snapchat|Bytedance/i.test(ua);
+
+        if (isWebView) {
+          // WebViewフラグを立てる（後続のスクリプトで判定用）
+          window.__WEBVIEW_BLOCKED__ = true;
+
+          document.addEventListener("DOMContentLoaded", function() {
+            // 画面の中身を警告メッセージだけで完全に上書きする
+            document.body.innerHTML = '<div style="background: rgba(255, 255, 255, 0.98); position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center;"><h2 style="font-size: 1.5rem; margin-bottom: 15px; color: #d32f2f;">ブラウザで開き直してください</h2><p style="margin-bottom: 20px; font-size: 1rem; line-height: 1.5;">セキュリティ上の理由により、この画面（アプリ内ブラウザ）からはログインできません。<br><br>画面のメニュー（\u22EE や \u2197 や \u22EF）から<br><strong>「Safariで開く」</strong>または<strong>「ブラウザで開く」</strong><br>を選択してください。<br><br><strong>To use this app, please open it in your default browser (Safari or Chrome).</strong><br>Tap the menu icon [ \u22EE ] or [ \u22EF ] at the top or bottom right, and select &quot;Open in browser&quot;.</p></div>';
+          });
+        }
+      })();
+    </script>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234285f4'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='18' fill='white'%3E%E2%80%A2%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css?v=20260420-hotfix2" />
+  </head>
+  <body>
+    <div id="app-loading-screen" class="app-loading-screen" role="status" aria-live="polite">
+      <div class="app-loading-screen__glass">
+        <div class="app-loading-screen__spinner" aria-hidden="true"></div>
+        <p class="app-loading-screen__text" data-i18n="loading_preparing_firebase">Firebaseを準備中...</p>
+      </div>
+    </div>
+    <div id="webViewWarningOverlay" class="webview-warning-overlay" hidden>
+      <div class="webview-warning-overlay__panel" role="alert" aria-live="assertive">
+        <h2>このアプリ内ブラウザでは続行できません</h2>
+        <p>
+          LINE / Instagram / Facebook / X などのアプリ内ブラウザでは、
+          Googleログインがブロックされる場合があります。
+        </p>
+        <p>
+          右上のメニュー（⋮ / ↗）から
+          <strong>「Safariで開く」または「ブラウザで開く」</strong>
+          を選んで続行してください。
+        </p>
+      </div>
+    </div>
+    <header id="appHeader" class="app-header" hidden>
+      <div class="app-header__inner">
+        <div class="app-header__left">
+          <button type="button" id="appHeaderBackButton" class="app-header-back back-button" data-app-back="true" aria-label="前の画面に戻る">
+            <svg class="app-header-back__icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <span class="app-header__title">One Meeting</span>
+        </div>
+        <div class="app-header__right">
+          <select id="navRoleSelect" class="nav-role-select" hidden aria-label="役割を切り替える">
+            <option value="host">👑 主催者</option>
+            <option value="participant">👤 参加者</option>
+          </select>
+          <div id="accountAvatarWrap" class="account-avatar-wrap" aria-label="アカウント" hidden>
+        <div class="account-avatar-menu-root">
+          <button
+            type="button"
+            id="accountAvatarMenuButton"
+            class="account-avatar-trigger"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="アカウントメニューを開く"
+          >
+            <img
+              id="account-avatar"
+              class="account-avatar"
+              alt=""
+              referrerpolicy="no-referrer"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='40' fill='%23d7deea'/%3E%3Ccircle cx='40' cy='31' r='16' fill='%23ffffff'/%3E%3Cpath d='M14 70c4-14 16-22 26-22s22 8 26 22' fill='%23ffffff'/%3E%3C/svg%3E"
+            />
+          </button>
+          <div
+            id="accountAvatarDropdown"
+            class="account-avatar-dropdown"
+            hidden
+            role="menu"
+            aria-label="アカウント操作"
+          >
+            <button type="button" class="account-avatar-dropdown__btn" role="menuitem" id="accountMenuSettingsButton">
+              <span class="account-avatar-dropdown__icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <span class="account-avatar-dropdown__label" data-i18n="account_settings">アカウント設定</span>
+            </button>
+            <button type="button" class="account-avatar-dropdown__btn" role="menuitem" id="accountMenuLogoutButton">
+              <span class="account-avatar-dropdown__icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <span class="account-avatar-dropdown__label" data-i18n="account_logout">ログアウト</span>
+            </button>
+            <button type="button" class="account-avatar-dropdown__btn" role="menuitem" id="accountMenuChangeLoginButton">
+              <span class="account-avatar-dropdown__icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <span class="account-avatar-dropdown__label" data-i18n="account_change_login">ログイン方法を変更</span>
+            </button>
+            <button type="button" class="account-avatar-dropdown__btn" role="menuitem" id="accountMenuPwaButton">
+              <span class="account-avatar-dropdown__icon" aria-hidden="true">📲</span>
+              <span class="account-avatar-dropdown__label" data-i18n="account_add_home">ホーム画面に追加</span>
+            </button>
+            <button type="button" class="account-avatar-dropdown__btn" role="menuitem" id="accountMenuNotifyButton">
+              <span class="account-avatar-dropdown__icon" aria-hidden="true">🔔</span>
+              <span id="accountMenuNotifyButtonLabel" class="account-avatar-dropdown__label" data-i18n="account_enable_notify">通知を許可する</span>
+            </button>
+            <label class="account-avatar-dropdown__language" for="languageSelect">
+              <span class="account-avatar-dropdown__label" data-i18n="language_label">言語</span>
+              <select id="languageSelect" class="account-avatar-dropdown__select">
+                <option value="ja" data-i18n="lang_ja">日本語</option>
+                <option value="en" data-i18n="lang_en">English</option>
+              </select>
+            </label>
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="container">
+      <div class="auth-entrance-stage">
+        <div class="auth-entrance-stage__blobs" aria-hidden="true">
+          <span class="auth-blob auth-blob--a"></span>
+          <span class="auth-blob auth-blob--b"></span>
+          <span class="auth-blob auth-blob--c"></span>
+        </div>
+        <section class="auth-card-glass" id="authSection" aria-label="ログイン">
+        <div class="auth-card-glass__glow" aria-hidden="true"></div>
+        <div class="auth-card-glass__inner">
+          <h2 class="auth-lead-primary" data-i18n="auth_hosting_title">イベントをサクッと作成・管理</h2>
+          <p class="note" data-i18n="auth_hosting_subtext">
+            幹事・主催者の方、または参加中のイベントを確認したい方はログインしてください。
+          </p>
+          <p class="auth-footnote" data-i18n="auth_invited_hint">
+            💡 招待された方は、LINE等で送られたイベントURLを直接タップしてください。
+          </p>
+          <div class="auth-actions auth-actions--stack">
+            <button type="button" id="googleSignInPopupButton" class="auth-btn auth-btn--google">
+              <span class="auth-btn__icon" aria-hidden="true">
+                <svg class="auth-google-logo" viewBox="0 0 24 24" width="22" height="22">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+              </span>
+              <span class="auth-btn__label" data-i18n="auth_google">Googleでログイン</span>
+            </button>
+            <button
+              type="button"
+              id="emailAuthOpenButton"
+              class="auth-btn auth-btn--email"
+              data-open-email-auth="true"
+            >
+              <span class="auth-btn__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </span>
+              <span class="auth-btn__label" data-i18n="auth_email">メールアドレスでログイン／登録</span>
+            </button>
+            <button type="button" id="anonymousSignInButton" class="auth-btn auth-btn--ghost" hidden>
+              <span class="auth-btn__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </span>
+              <span class="auth-btn__label" data-i18n="auth_anonymous">お試しで利用する</span>
+            </button>
+          </div>
+          <p id="authStatusLine" class="auth-status-line" role="status" aria-live="polite"></p>
+          <details class="auth-footnote">
+            <summary data-i18n="auth_policy_summary">注意事項・利用ポリシー</summary>
+            <p>
+              本アプリは<strong>ベータ版</strong>です。機能・デザイン・データ保存方針は予告なく変更される場合があります。投稿内容や写真は
+              Firebase 上に保存されます。第三者への公開範囲や削除の要望は、運用ポリシーに従ってください。
+              <strong>主催者向け</strong>：ログイン後にマイイベント、新規作成、招待リンク／QR、出欠の集計、主催者からのお知らせ、参加者への個別連絡が利用できます。
+              <strong>参加者向け</strong>：主催者が共有した <code>?eventId=…</code> のURLを開いたうえでログインし、参加登録してください。複数端末で続ける場合は
+              <strong>Google ログイン</strong>または<strong>メール・パスワード</strong>を利用できます。
+            </p>
+          </details>
+        </div>
+      </section>
+      </div>
+
+      <div class="auth-entrance-stage">
+        <div class="auth-entrance-stage__blobs" aria-hidden="true">
+          <span class="auth-blob auth-blob--a"></span>
+          <span class="auth-blob auth-blob--b"></span>
+          <span class="auth-blob auth-blob--c"></span>
+        </div>
+        <section class="auth-card-glass role-select-section" id="roleSelectSection" hidden aria-label="役割選択">
+        <div class="auth-card-glass__glow" aria-hidden="true"></div>
+        <div class="auth-card-glass__inner">
+            <p class="auth-lead-primary" data-i18n="role_select_lead">利用する役割を選んでください。</p>
+          <div id="roleSelectPendingInvitePanel" class="role-select-pending-invite" hidden>
+            <p class="note">このページにはイベント招待（<code>?eventId=</code>）が付いています。</p>
+            <button type="button" id="roleSelectOpenPendingEventButton" class="auth-btn auth-btn--email">
+              <span data-i18n="role_open_event">このイベントを開く</span>
+            </button>
+          </div>
+          <div class="role-select-actions">
+            <button type="button" id="roleSelectHostButton" class="auth-btn role-select-btn role-select-btn--host">
+              <span class="auth-btn__icon" aria-hidden="true">🎤</span>
+              <span class="auth-btn__label" data-i18n="role_host">主催者として管理 (Host)</span>
+              <span class="role-select-btn__hint" data-i18n="role_host_hint">マイイベント一覧・作成・招待</span>
+            </button>
+            <button type="button" id="roleSelectParticipantButton" class="auth-btn role-select-btn role-select-btn--participant">
+              <span class="auth-btn__icon" aria-hidden="true">🎫</span>
+              <span class="auth-btn__label" data-i18n="role_participant">参加者として入室 (Participant)</span>
+              <span class="role-select-btn__hint" data-i18n="role_participant_hint">パスコードでイベントを検索</span>
+            </button>
+          </div>
+          <div class="role-select-relogin-wrap">
+            <button type="button" id="roleSelectReloginLink" class="role-select-relogin-btn">
+              <span data-i18n="role_relogin">別の方法でログインし直す</span>
+            </button>
+          </div>
+          <p id="roleSelectStatusLine" class="auth-status-line" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+      </div>
+
+      <div class="auth-entrance-stage">
+        <div class="auth-entrance-stage__blobs" aria-hidden="true">
+          <span class="auth-blob auth-blob--a"></span>
+          <span class="auth-blob auth-blob--b"></span>
+          <span class="auth-blob auth-blob--c"></span>
+        </div>
+        <section class="auth-card-glass join-passcode-section" id="joinByPasscodeSection" hidden aria-label="パスコードで参加">
+        <div class="auth-card-glass__glow" aria-hidden="true"></div>
+        <div class="auth-card-glass__inner">
+          <p class="auth-lead-primary" data-i18n="passcode_lead">主催者から共有されたパスコードを入力してください。</p>
+          <div id="joinPasscodeInputPanel" class="join-passcode-input-panel">
+            <label for="joinPasscodeInput" data-i18n="passcode_label">パスコード</label>
+            <input
+              id="joinPasscodeInput"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="32"
+              placeholder="例: 123456"
+              data-i18n-placeholder="passcode_placeholder"
+            />
+            <button type="button" id="joinPasscodeSearchButton" class="auth-btn auth-btn--email join-passcode-search-btn">
+              <span class="auth-btn__label" data-i18n="passcode_search">イベントを検索</span>
+            </button>
+            <p id="joinPasscodeStatusLine" class="auth-status-line" role="status" aria-live="polite"></p>
+          </div>
+          <div id="joinPasscodeResultsPanel" class="join-passcode-results-panel" hidden>
+            <p id="joinPasscodeResultsMessage" class="note join-passcode-results-message"></p>
+            <ul id="joinPasscodeResultsList" class="join-passcode-results-list"></ul>
+          </div>
+          <div id="joinPasscodeConfirmPanel" class="join-passcode-confirm-panel" hidden>
+            <h2 class="join-passcode-confirm-title">参加申請の確認</h2>
+            <p class="note">以下のイベントに参加申請する前に内容を確認してください。</p>
+            <dl class="join-passcode-confirm-dl">
+              <div>
+                <dt>イベント名</dt>
+                <dd id="joinPasscodeConfirmEventName">—</dd>
+              </div>
+              <div>
+                <dt>主催者</dt>
+                <dd id="joinPasscodeConfirmHostName">—</dd>
+              </div>
+              <div>
+                <dt>日時</dt>
+                <dd id="joinPasscodeConfirmDate">—</dd>
+              </div>
+            </dl>
+            <div class="join-passcode-confirm-actions">
+              <button type="button" id="joinRequestApplyButton" class="auth-btn auth-btn--email">
+                <span class="auth-btn__label">参加申請</span>
+              </button>
+            </div>
+            <p class="auth-footnote join-passcode-apply-note">
+              「参加申請」後は待合室に移動し、主催者が承認するとイベントページへ進めます。招待リンク（<code>?eventId=</code>）からは従来どおり即時に参加登録できます。
+            </p>
+          </div>
+          <div id="participantDashboardSection" class="participant-dashboard-section">
+            <div class="section-head">
+              <h2>参加中のグループ</h2>
+            </div>
+            <p class="note">参加済みイベントをタップすると、イベント画面を開けます。</p>
+            <p id="participantEventsStatusText" class="note"></p>
+            <div id="participantEventsGrid" class="my-events-grid event-category-container">
+              <div id="participantEventsUpcoming" class="event-category-group" hidden></div>
+              <div id="participantEventsOngoing" class="event-category-group" hidden></div>
+              <div id="participantEventsClosed" class="event-category-group" hidden></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      </div>
+
+      <div class="auth-entrance-stage">
+        <div class="auth-entrance-stage__blobs" aria-hidden="true">
+          <span class="auth-blob auth-blob--a"></span>
+          <span class="auth-blob auth-blob--b"></span>
+          <span class="auth-blob auth-blob--c"></span>
+        </div>
+        <section class="auth-card-glass waiting-room-section" id="waitingRoomSection" hidden aria-label="承認待ち">
+        <div class="auth-card-glass__glow" aria-hidden="true"></div>
+        <div class="auth-card-glass__inner">
+          <p class="auth-lead-primary waiting-room-lead">主催者の承認を待っています…</p>
+          <p class="note waiting-room-host-line">
+            主催者: <span id="waitingRoomHostDisplay">—</span>
+          </p>
+          <p class="auth-status-line" id="waitingRoomStatusLine" role="status" aria-live="polite"></p>
+          <p class="auth-footnote">
+            承認されると自動的にイベント画面へ移動します。お急ぎの場合は主催者へお問い合わせください。
+          </p>
+        </div>
+      </section>
+      </div>
+
+      <div class="auth-entrance-stage" id="userProfileEntranceStage">
+        <div class="auth-entrance-stage__blobs" aria-hidden="true">
+          <span class="auth-blob auth-blob--a"></span>
+          <span class="auth-blob auth-blob--b"></span>
+          <span class="auth-blob auth-blob--c"></span>
+        </div>
+        <section
+          class="auth-card-glass user-profile-section"
+          id="userProfileSection"
+          hidden
+          aria-label="プロフィール設定"
+        >
+          <div class="auth-card-glass__glow" aria-hidden="true"></div>
+          <div class="auth-card-glass__inner">
+            <h2 id="userProfileTitle" class="user-profile-title">プロフィールを設定</h2>
+            <p id="userProfileLead" class="auth-lead-primary user-profile-lead">
+              表示名とアイコンを設定してください。
+            </p>
+            <div id="accountSettingsSection" hidden>
+              <ul class="settings-list">
+                <li class="settings-item" id="menuAccountSettings">アカウント設定（プロフィール・画像変更）</li>
+                <li class="settings-item" id="menuNotificationSettings">通知設定</li>
+                <li class="settings-item settings-item--danger" id="menuLogout">ログアウト</li>
+              </ul>
+            </div>
+            <form id="userProfileForm" class="user-profile-form">
+              <label class="user-profile-label" for="userProfileNameInput">表示名</label>
+              <input
+                id="userProfileNameInput"
+                name="displayName"
+                type="text"
+                class="user-profile-input"
+                required
+                maxlength="80"
+                autocomplete="nickname"
+                placeholder="例: 山田太郎"
+              />
+              <label class="user-profile-label" for="userProfileAvatarInput">アイコン画像</label>
+              <input
+                id="userProfileAvatarInput"
+                name="avatar"
+                type="file"
+                class="user-profile-file"
+                accept="image/*"
+              />
+              <div id="userProfilePreviewWrap" class="user-profile-preview-wrap" hidden>
+                <img id="userProfilePreviewImg" class="user-profile-preview-img" alt="" width="120" height="120" referrerpolicy="no-referrer" />
+                <span class="user-profile-preview-caption">プレビュー</span>
+              </div>
+              <button type="submit" id="userProfileSubmitButton" class="auth-btn auth-btn--email user-profile-submit">
+                <span class="auth-btn__label">保存して次へ</span>
+              </button>
+            </form>
+            <p id="userProfileStatusLine" class="auth-status-line" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+      </div>
+
+      <section class="card" id="myEventsSection" hidden>
+        <div class="section-head">
+          <div class="section-head__main">
+            <h2>マイイベント</h2>
+            <button type="button" class="fab-create-event" id="myEventsNewEventButton" aria-label="イベントを新規作成">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <p class="dashboard-lead">
+          あなたが主催しているイベントです。カードを開いて管理へ。右上の<strong>共有</strong>から招待リンクのコピーやQR表示ができます。
+        </p>
+        <p id="myEventsStatusText" class="note"></p>
+        <div id="myEventsGrid" class="my-events-grid event-category-container">
+          <div id="hostEventsUpcoming" class="event-category-group" hidden></div>
+          <div id="hostEventsOngoing" class="event-category-group" hidden></div>
+          <div id="hostEventsClosed" class="event-category-group" hidden></div>
+        </div>
+      </section>
+
+      <section class="card" id="createEventSection" hidden>
+        <h2>イベントを新規作成</h2>
+        <p class="dashboard-lead">
+          作成直後に招待URLがコピーされ、数秒後にイベントページへ移動します。メンバーにはそのURLまたはQRを共有してください。
+        </p>
+        <form id="createEventForm">
+          <label for="createTitleInput">イベント名</label>
+          <input
+            id="createTitleInput"
+            name="title"
+            type="text"
+            placeholder="例: 代々木公園の花見"
+            required
+          />
+
+          <label for="createDateInput">日時</label>
+          <input
+            id="createDateInput"
+            name="dateText"
+            type="datetime-local"
+            required
+          />
+
+          <label for="createLocationInput">場所</label>
+          <input
+            id="createLocationInput"
+            name="location"
+            type="text"
+            placeholder="例: 代々木公園 中央広場"
+            required
+          />
+          <label for="eventLocationUrl">場所のURL（オプション）</label>
+          <input
+            id="eventLocationUrl"
+            name="locationUrl"
+            type="url"
+            placeholder="https://..."
+          />
+
+          <label class="premium-toggle">
+            <input type="checkbox" id="createPasscodeLimitCheckbox" />
+            パスコードで参加を制限する
+          </label>
+          <div id="createPasscodeFieldsWrap" class="create-passcode-fields" hidden>
+            <label for="createPasscodeInput">パスコード（4〜12桁の英数字）</label>
+            <input
+              id="createPasscodeInput"
+              name="passcode"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              maxlength="12"
+              pattern="[a-zA-Z0-9]{4,12}"
+              placeholder="例: hanami2026"
+            />
+          </div>
+
+          <label class="premium-toggle">
+            <input id="createPremiumInput" name="isPremium" type="checkbox" />
+            プレミアム機能を有効にする（解散後72時間の投稿可）
+          </label>
+
+          <fieldset class="create-advanced-options">
+            <legend class="create-advanced-legend">高度な管理オプション</legend>
+
+            <label for="createMaxParticipantsInput">定員（空欄で無制限）</label>
+            <input
+              id="createMaxParticipantsInput"
+              name="maxParticipants"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="99999"
+              placeholder="例: 20"
+            />
+
+            <label for="createAnswerDeadlineInput">回答期限（空欄で期限なし）</label>
+            <input
+              id="createAnswerDeadlineInput"
+              name="answerDeadline"
+              type="datetime-local"
+            />
+
+            <label class="premium-toggle">
+              <input type="checkbox" id="createPrivateListCheckbox" name="privateList" />
+              参加者リストを秘匿する（主催者以外には名前・コメントを表示しない）
+            </label>
+            <label class="premium-toggle">
+              <input type="checkbox" id="createRequireApprovalCheckbox" name="requireApproval" />
+              参加の承認を必須にする
+            </label>
+          </fieldset>
+
+          <button type="submit">作成</button>
+          <p id="createStatusText" class="note"></p>
+        </form>
+      </section>
+
+      <header class="card event-card" id="eventDetailCard" hidden>
+        <div
+          id="eventDissolveCountdownBanner"
+          class="event-dissolve-countdown-banner"
+          hidden
+          role="status"
+          aria-live="polite"
+        ></div>
+        <div class="modern-action-menu-wrap">
+          <button
+            type="button"
+            id="modernActionMenuToggle"
+            class="modern-action-menu-toggle"
+            aria-label="メニューを開く"
+            aria-controls="modernActionMenu"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="5" r="1"></circle>
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="12" cy="19" r="1"></circle>
+            </svg>
+          </button>
+          <div id="modernActionMenu" class="modern-action-menu" hidden>
+            <button type="button" id="openAccountingButton" class="modern-action-menu-item">💰 会計・割り勘</button>
+            <button type="button" id="eventShareButton" class="modern-action-menu-item">📤 イベントを共有</button>
+            <button type="button" id="eventEditButton" class="modern-action-menu-item" hidden>✏️ 情報を編集</button>
+          </div>
+        </div>
+        <h1 id="eventTitle">代々木公園の花見</h1>
+        <dl class="event-meta">
+          <div>
+            <dt>日時</dt>
+            <dd id="eventDate">2026年4月5日（日） 12:00 - 16:00</dd>
+          </div>
+          <div>
+            <dt>場所</dt>
+            <dd id="eventLocation">代々木公園 中央広場</dd>
+          </div>
+          <div id="organizerPasscodePanel" hidden>
+            <dt>パスコード</dt>
+            <dd>
+              <span id="organizerPasscodeValue" style="font-weight: bold; font-size: 1.1rem;"></span>
+              <button
+                type="button"
+                id="organizerPasscodeCopyButton"
+                class="secondary-button"
+                style="padding: 2px 8px; font-size: 0.75rem; margin-left: 8px;"
+              >
+                コピー
+              </button>
+            </dd>
+          </div>
+        </dl>
+        <div class="event-calendar-inline">
+          <button
+            type="button"
+            id="eventGuestJoinButton"
+            class="event-guest-join-button"
+            aria-label="出欠を回答する"
+            hidden
+          >
+            参加する
+          </button>
+          <button type="button" id="eventCalendarQuickAddButton" class="secondary-button event-calendar-inline__button" data-i18n="calendar_add">
+            📅 カレンダーに追加
+          </button>
+          <button id="dissolveButton" type="button" class="compact-danger-button" hidden>解散する</button>
+        </div>
+        <div id="organizerPendingParticipantsBlock" class="organizer-pending-block card-like-inset" hidden>
+          <h3 class="organizer-pending-title">承認待ちの参加者</h3>
+          <p id="organizerPendingEmptyHint" class="note">現在、承認待ちの申請はありません。</p>
+          <ul id="organizerPendingParticipantsList" class="organizer-pending-list"></ul>
+        </div>
+        <p id="premiumTopTimer" class="premium-timer" hidden></p>
+      </header>
+
+      <div id="eventEditOverlay" class="event-edit-overlay" hidden>
+        <div
+          class="event-edit-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="eventEditHeading"
+        >
+          <button type="button" id="eventEditCloseButton" class="event-edit-close" aria-label="閉じる">
+            ×
+          </button>
+          <h2 id="eventEditHeading" class="event-edit-heading">イベント情報を編集</h2>
+          <form id="eventEditForm">
+            <label class="event-edit-label" for="eventEditNameInput">イベント名</label>
+            <input id="eventEditNameInput" name="title" type="text" required autocomplete="off" />
+
+            <label class="event-edit-label" for="eventEditDateInput">日時</label>
+            <div class="event-edit-datetime-row">
+              <input id="eventEditDateInput" name="dateText" type="date" required />
+              <input id="eventEditTimeInput" name="timeText" type="time" step="60" required />
+            </div>
+
+            <label class="event-edit-label" for="eventEditLocationInput">場所</label>
+            <input id="eventEditLocationInput" name="location" type="text" required autocomplete="off" />
+
+            <div class="event-edit-actions">
+              <button type="submit" class="secondary-button">保存</button>
+              <button type="button" id="eventEditCancelButton" class="secondary-button">キャンセル</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <section class="card" id="participantsSection" hidden>
+        <div class="section-head">
+          <div class="section-head__main">
+            <h2>参加者リスト</h2>
+            <span id="participantsCount">3名</span>
+          </div>
+        </div>
+        <p id="accessNotice" class="note" hidden></p>
+        <p id="premiumCountdownText" class="note" hidden></p>
+        <div id="participantsBody" class="participants-avatar-strip"></div>
+      </section>
+
+      <section class="card lock-area" id="photosSection" hidden>
+        <div class="section-head">
+          <div class="section-head__main">
+            <h2>写真ギャラリー</h2>
+            <span id="photosCount">0枚</span>
+          </div>
+        </div>
+        <div id="photoUploadControls">
+          <label for="photoFileInput">写真をアップロード</label>
+          <input id="photoFileInput" type="file" accept="image/*" />
+          <button type="button" id="uploadPhotoButton">写真を投稿する</button>
+          <p id="photoStatusText" class="note"></p>
+        </div>
+        <div id="photosGrid" class="photos-grid"></div>
+        <div id="photosLockOverlay" class="lock-overlay" hidden>
+          <div class="lock-card">
+            <p id="photosLockText">保存するには主催者がアップグレードしてください</p>
+            <button type="button" id="guestGoogleLoginButtonPhotos" class="upgrade-button" hidden>
+              Googleでログイン
+            </button>
+            <button type="button" id="upgradeButtonPhotos" class="upgrade-button" hidden>
+              主催者向け: アップグレード案内を開く
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card lock-area" id="chatSection" hidden>
+        <div class="section-head">
+          <div class="section-head__main">
+            <h2>イベントチャット</h2>
+            <span id="messagesCount">0件</span>
+          </div>
+        </div>
+        <div id="messagesList" class="messages-list"></div>
+        <form id="chatForm" class="modern-chat-form" action="javascript:void(0);">
+          <input id="chatPhotoInput" type="file" accept="image/*" hidden />
+          <button type="button" id="chatPhotoButton" class="chat-attach-button" aria-label="写真を添付">
+            📷
+          </button>
+
+          <div class="chat-input-wrapper">
+            <textarea
+              id="messageInput"
+              name="message"
+              class="modern-chat-input"
+              placeholder="メッセージを入力"
+              rows="1"
+              maxlength="300"
+              enterkeyhint="send"
+              autocapitalize="sentences"
+            ></textarea>
+          </div>
+
+          <button type="submit" class="chat-send-button modern-send-button" aria-label="送信">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
+        <p id="chatStatusText" class="note"></p>
+        <div id="messagesLockOverlay" class="lock-overlay" hidden>
+          <div class="lock-card">
+            <p id="messagesLockText">保存するには主催者がアップグレードしてください</p>
+            <button type="button" id="guestGoogleLoginButtonMessages" class="upgrade-button" hidden>
+              Googleでログイン
+            </button>
+            <button type="button" id="upgradeButtonMessages" class="upgrade-button" hidden>
+              主催者向け: アップグレード案内を開く
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="accountingSection" hidden aria-label="会計・割り勘">
+        <div class="section-head">
+          <div class="section-head__main">
+            <h2>💰 会計・割り勘</h2>
+          </div>
+        </div>
+        <p class="note">総額を入力し、メンバーごとの支払額を調整してください。</p>
+
+        <div class="accounting-total-box accounting-total-box--prominent">
+          <label for="accountingTotalInput">イベント総額（円）</label>
+          <input
+            type="number"
+            id="accountingTotalInput"
+            class="user-profile-input"
+            inputmode="numeric"
+            placeholder="例: 15000"
+            min="0"
+            step="100"
+          />
+        </div>
+
+        <div class="accounting-participants-area">
+          <h3 class="accounting-members-heading">
+            支払いメンバー <span id="accountingMembersCount" class="accounting-members-count">0人</span>
+          </h3>
+          <ul id="accountingParticipantsList" class="accounting-list"></ul>
+        </div>
+
+        <div class="accounting-summary-box accounting-summary-box--blue">
+          <p class="accounting-summary-total-line">
+            集金予定額: <span id="accountingCalculatedTotal" class="accounting-calculated-total">0</span> 円
+          </p>
+          <p class="note accounting-difference-notice" id="accountingDifferenceNotice"></p>
+        </div>
+
+        <div class="accounting-actions">
+          <button type="button" id="accountingShareButton" class="secondary-button" disabled>結果をチャットに共有 (準備中)</button>
+        </div>
+      </section>
+
+      <section class="card" id="joinGateSection" hidden>
+        <h2>参加受付</h2>
+        <p id="participantAccessPendingPanel" class="note participant-access-gate" hidden>
+          参加申請は承認待ちです。主催者が承認するまで、参加者リスト・写真・チャットは表示されません。
+        </p>
+        <p id="participantAccessNotJoinedPanel" class="note participant-access-gate" hidden>
+          まだこのイベントに参加登録されていません。下のフォームから登録すると、他の参加者の一覧・写真・チャットを閲覧できるようになります（承認制の場合は承認後）。
+        </p>
+        <p id="eventClosedMessage" class="note" hidden>このイベントは解散しました。</p>
+        <p id="joinFormGateMessage" class="note join-form-gate-message" hidden role="status"></p>
+        <form id="joinForm" hidden>
+          <label for="nameInput">名前</label>
+          <input
+            id="nameInput"
+            name="name"
+            type="text"
+            placeholder="名前を入力"
+            required
+          />
+
+          <p class="label-like">出欠</p>
+          <div class="status-group" role="radiogroup" aria-label="出欠">
+            <input type="radio" id="statusAttend" name="status" value="出席" checked />
+            <label for="statusAttend">出席</label>
+
+            <input type="radio" id="statusAbsent" name="status" value="欠席" />
+            <label for="statusAbsent">欠席</label>
+
+            <input type="radio" id="statusUndecided" name="status" value="未定" />
+            <label for="statusUndecided">未定</label>
+          </div>
+
+          <label for="commentInput">一言コメント</label>
+          <textarea
+            id="commentInput"
+            name="comment"
+            placeholder="例: 30分ほど遅れます！"
+            rows="3"
+          ></textarea>
+
+          <button type="submit" id="joinButton">参加する</button>
+          <p id="joinStatusText" class="note"></p>
+          <div id="calendarAfterRsvpRow" class="calendar-after-rsvp" hidden>
+            <p class="note calendar-after-rsvp__hint" data-i18n="calendar_hint">予定をスマホやPCのカレンダーに追加できます。</p>
+            <button type="button" id="calendarAfterRsvpButton" class="secondary-button" data-i18n="calendar_add_schedule">
+              📅 カレンダーに予定を追加する
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <div id="rsvpEditModal" class="glass-modal" hidden>
+        <div class="glass-modal__panel" role="dialog" aria-modal="true" aria-labelledby="rsvpEditTitle">
+          <button type="button" id="rsvpEditCloseButton" class="glass-modal__close" aria-label="閉じる">×</button>
+          <h3 id="rsvpEditTitle">出欠を編集</h3>
+          <form id="rsvpEditForm" class="glass-modal__form">
+            <p class="label-like">出欠</p>
+            <div class="status-group" role="radiogroup" aria-label="出欠">
+              <input type="radio" id="rsvpEditAttend" name="rsvpEditStatus" value="出席" />
+              <label for="rsvpEditAttend">出席</label>
+              <input type="radio" id="rsvpEditAbsent" name="rsvpEditStatus" value="欠席" />
+              <label for="rsvpEditAbsent">欠席</label>
+              <input type="radio" id="rsvpEditUndecided" name="rsvpEditStatus" value="未定" />
+              <label for="rsvpEditUndecided">未定</label>
+            </div>
+            <label for="rsvpEditCommentInput">一言コメント</label>
+            <textarea id="rsvpEditCommentInput" rows="3" maxlength="300" placeholder="例: 少し遅れます"></textarea>
+            <p id="rsvpEditStatusText" class="note"></p>
+            <button type="submit" class="secondary-button">保存する</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="dmModal" class="glass-modal" hidden>
+        <div class="glass-modal__panel" role="dialog" aria-modal="true" aria-labelledby="dmModalTitle">
+          <button type="button" id="dmModalCloseButton" class="glass-modal__close" aria-label="閉じる">×</button>
+          <h3 id="dmModalTitle">個別チャット</h3>
+          <div id="dmMessagesList" class="messages-list dm-messages-list"></div>
+          <form id="dmForm" class="glass-modal__form">
+            <label for="dmMessageInput">メッセージ</label>
+            <textarea id="dmMessageInput" rows="2" maxlength="300" placeholder="個別メッセージを入力"></textarea>
+            <p id="dmStatusText" class="note"></p>
+            <button type="submit" id="dmSubmitButton" class="chat-send-button">送信</button>
+          </form>
+        </div>
+      </div>
+      <div id="participantInfoModal" class="glass-modal" hidden>
+        <div
+          class="glass-modal__panel participant-info-modal__panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="participantInfoName"
+        >
+          <button type="button" id="participantInfoCloseButton" class="glass-modal__close" aria-label="閉じる">×</button>
+          <div class="participant-info-modal__header">
+            <img id="participantInfoAvatar" class="participant-info-modal__avatar" src="" alt="" referrerpolicy="no-referrer" />
+            <div class="participant-info-modal__meta">
+              <h3 id="participantInfoName" class="participant-info-modal__name">参加者</h3>
+              <span id="participantInfoStatus" class="participant-info-modal__status">未定</span>
+            </div>
+          </div>
+          <div class="participant-info-modal__comment-row">
+            <p id="participantInfoComment" class="participant-info-modal__comment participant-info-modal__comment--inline">
+              コメントはありません。
+            </p>
+            <button type="button" id="participantInfoEditIcon" class="icon-button participant-info-modal__edit-icon" hidden aria-label="編集する">
+              ✏️
+            </button>
+          </div>
+
+          <div id="participantInfoEditBox" class="participant-info-modal__edit-box" hidden>
+            <label class="participant-info-modal__edit-label" for="inlineEditStatus">出欠</label>
+            <select id="inlineEditStatus" class="user-profile-input participant-info-modal__edit-select">
+              <option value="出席">出席</option>
+              <option value="欠席">欠席</option>
+              <option value="未定">未定</option>
+            </select>
+            <label class="participant-info-modal__edit-label" for="inlineEditComment">コメント</label>
+            <textarea id="inlineEditComment" class="user-profile-input participant-info-modal__edit-textarea" rows="2"></textarea>
+            <div class="participant-info-modal__edit-actions">
+              <button type="button" id="inlineEditCancelBtn" class="secondary-button participant-info-modal__edit-cancel">キャンセル</button>
+              <button type="button" id="inlineEditSaveBtn" class="secondary-button participant-info-modal__edit-save">保存</button>
+            </div>
+          </div>
+
+          <button type="button" id="participantInfoActionButton" class="chat-send-button participant-info-modal__action"></button>
+        </div>
+      </div>
+    </main>
+
+    <nav id="appFooter" class="app-footer" hidden aria-label="メインナビゲーション">
+      <button type="button" id="appFooterTabHome" class="app-footer__tab" data-footer-tab="home" aria-label="ホーム">
+        <svg class="app-footer__icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path
+            d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-9.5z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      <button type="button" id="appFooterTabChat" class="app-footer__tab" data-footer-tab="chat" aria-label="チャット">
+        <svg class="app-footer__icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path
+            d="M7 17l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H7z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      <button type="button" id="appFooterTabSettings" class="app-footer__tab" data-footer-tab="settings" aria-label="設定">
+        <svg class="app-footer__icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path
+            d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </nav>
+
+    <div id="pwaInstallBanner" class="pwa-install-banner" hidden role="region" aria-label="アプリのインストール">
+      <div class="pwa-install-banner__inner">
+        <p class="pwa-install-banner__text">
+          <strong>アプリとして保存</strong>して、ホーム画面から開いたり通知を受け取ったりできます。
+        </p>
+        <div class="pwa-install-banner__actions">
+          <button type="button" id="pwaInstallBannerButton" class="auth-btn auth-btn--google pwa-install-banner__primary">
+            アプリとして保存
+          </button>
+          <button type="button" id="pwaInstallBannerDismiss" class="secondary-button pwa-install-banner__dismiss">
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="calendarPromptModal" class="glass-modal" hidden>
+      <div class="glass-modal__panel calendar-prompt-modal__panel" role="dialog" aria-modal="true" aria-labelledby="calendarPromptTitle">
+        <button type="button" id="calendarPromptCloseButton" class="glass-modal__close" aria-label="閉じる">×</button>
+        <h3 id="calendarPromptTitle" data-i18n="calendar_prompt_title">参加登録が完了しました！</h3>
+        <p class="note" data-i18n="calendar_prompt_desc">予定を忘れないように、カレンダーに追加しましょう。</p>
+        <button type="button" id="calendarPromptAddButton" class="auth-btn auth-btn--email" data-i18n="calendar_add_action">
+          📅 カレンダーに追加する
+        </button>
+        <button type="button" id="calendarPromptCloseSecondaryButton" class="secondary-button" data-i18n="close">閉じる</button>
+      </div>
+    </div>
+
+    <div id="guestAccessChoiceModal" class="glass-modal" hidden>
+      <div class="glass-modal__panel" role="dialog" aria-modal="true" aria-labelledby="guestAccessChoiceTitle">
+        <button type="button" id="guestAccessChoiceCloseButton" class="glass-modal__close" aria-label="閉じる">×</button>
+        <h3 id="guestAccessChoiceTitle">参加方法を選択</h3>
+        <p class="note">このイベントへの回答方法を選んでください。</p>
+        <div class="guest-access-choice-actions">
+          <button type="button" id="guestQuickAnswerButton" class="auth-btn auth-btn--email" data-i18n="guest_quick_answer">
+            名前だけ入れてサクッと回答（ログイン不要）
+          </button>
+          <button type="button" id="guestGoogleLoginButton" class="secondary-button">
+            Googleでログインしてフル機能を使う
+          </button>
+          <button type="button" id="guestEmailLoginButton" class="secondary-button">
+            メールアドレスでログイン / 新規登録
+          </button>
+        </div>
+        <p id="guestAccessChoiceStatusText" class="note" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div id="iosAddToHomeModal" class="qr-modal ios-pwa-modal" hidden>
+      <div class="qr-modal-backdrop" data-close-ios-pwa="true"></div>
+      <div class="qr-modal-body ios-pwa-modal__body" role="dialog" aria-modal="true" aria-labelledby="iosPwaModalTitle">
+        <h2 id="iosPwaModalTitle" class="qr-modal-title">ホーム画面に追加する（iPhone / iPad）</h2>
+        <p class="qr-modal-caption ios-pwa-modal__lead">
+          Safari ではストアのようなインストールはありません。<strong>共有メニュー</strong>から追加してください。
+        </p>
+        <ol class="ios-pwa-steps">
+          <li class="ios-pwa-steps__item">
+            <span class="ios-pwa-steps__icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </span>
+            <span>画面下の<strong>共有</strong>
+              <svg class="ios-safari-share" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 8.81C7.5 8.31 6.79 8 6 8c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"
+                />
+              </svg>
+              をタップ</span>
+          </li>
+          <li class="ios-pwa-steps__item">
+            <span class="ios-pwa-steps__icon" aria-hidden="true">➕</span>
+            <span>下にスクロールして<strong>「ホーム画面に追加」</strong>を選ぶ</span>
+          </li>
+          <li class="ios-pwa-steps__item">
+            <span class="ios-pwa-steps__icon" aria-hidden="true">✓</span>
+            <span>右上の<strong>追加</strong>で完了。アイコンがホームに表示されます。</span>
+          </li>
+        </ol>
+        <p class="note ios-pwa-modal__note">通知は iOS の仕様上、追加後にブラウザ設定から許可が必要な場合があります。</p>
+        <button type="button" id="iosAddToHomeCloseButton" class="secondary-button">閉じる</button>
+      </div>
+    </div>
+
+    <div id="globalToast" class="toast" aria-live="polite">
+      <span id="globalToastText"></span>
+    </div>
+
+    <div id="emailAuthModal" class="qr-modal email-auth-modal" hidden>
+      <div class="qr-modal-backdrop" data-close-email-modal></div>
+      <div
+        class="qr-modal-body email-auth-modal__body"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="emailAuthModalTitle"
+      >
+        <h2 id="emailAuthModalTitle" class="qr-modal-title">メールでログイン／登録</h2>
+        <p class="qr-modal-caption">登録済みならログイン、未登録なら「アカウント作成」から登録できます。</p>
+        <form id="emailAuthForm" class="email-auth-form">
+          <label class="email-auth-label" for="emailAuthInput">メールアドレス</label>
+          <input
+            id="emailAuthInput"
+            class="email-auth-input"
+            type="email"
+            name="email"
+            autocomplete="username"
+            required
+            placeholder="example@email.com"
+          />
+          <label class="email-auth-label" for="emailAuthPassword">パスワード（6文字以上）</label>
+          <input
+            id="emailAuthPassword"
+            class="email-auth-input"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+            minlength="6"
+            placeholder="パスワード"
+          />
+          <p id="emailAuthStatusText" class="note email-auth-status" role="status"></p>
+          <div class="email-auth-actions">
+            <button type="submit" id="emailAuthSignInButton" class="auth-btn auth-btn--email-submit">
+              ログイン
+            </button>
+            <button type="button" id="emailAuthSignUpButton" class="auth-btn auth-btn--email-secondary">
+              アカウント作成
+            </button>
+          </div>
+        </form>
+        <button type="button" id="emailAuthCloseButton" class="secondary-button email-auth-close">閉じる</button>
+      </div>
+    </div>
+
+    <div id="qrModal" class="qr-modal" hidden>
+      <div class="qr-modal-backdrop"></div>
+      <div class="qr-modal-body" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle">
+        <h2 id="qrModalTitle" class="qr-modal-title">招待QRコード</h2>
+        <p class="qr-modal-caption">
+          このQRコードを参加者に読み取ってもらうと、イベントページが開きます。
+        </p>
+        <div id="qrModalCode" class="qr-modal-code"></div>
+        <button type="button" id="qrModalCloseButton" class="secondary-button">閉じる</button>
+      </div>
+    </div>
+
+    <div id="shareBottomSheet" class="bottom-sheet-wrap" hidden>
+      <div class="bottom-sheet-backdrop" id="shareBottomSheetBackdrop" aria-hidden="true"></div>
+      <div class="bottom-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="shareBottomSheetTitle">
+        <div class="bottom-sheet-handle" aria-hidden="true"></div>
+        <h3 id="shareBottomSheetTitle" class="bottom-sheet-title">イベントをシェア</h3>
+        <ul class="bottom-sheet-list">
+          <li>
+            <button type="button" id="bsCopyLinkButton" class="bottom-sheet-btn">
+              <span class="bs-icon" aria-hidden="true">🔗</span> 招待リンクをコピー
+            </button>
+          </li>
+          <li>
+            <button type="button" id="bsShowQrButton" class="bottom-sheet-btn">
+              <span class="bs-icon" aria-hidden="true">📱</span> QRコードを表示
+            </button>
+          </li>
+        </ul>
+        <button type="button" id="bsCancelButton" class="bottom-sheet-cancel">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 1: Firebase SDK（app → auth → firestore → storage → analytics） -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
+    <!-- 2: 初期化用設定（firebaseConfig / FIREBASE_WEB_CONFIG）※ script.js より前 -->
+    <script src="/config.js?v=20260404-single"></script>
+    <script src="./lib/qrcode.min.js"></script>
+    <script>
+      if (window.ENABLE_PREMIUM_FEATURES) {
+        document.write('<script src="./premium-features.js?v=20260328-2"><\/script>');
+      }
+    </script>
+    <!-- 3: アプリ本体（Viteエントリ） -->
+    <script type="module" src="/src/js/99-main.js?v=20260420-hotfix2"></script>
+  </body>
+</html>

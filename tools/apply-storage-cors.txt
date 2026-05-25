@@ -1,0 +1,32 @@
+Firebase Storage にブラウザからアップロードするには、GCS バケットへ CORS を設定します。
+gsutil は非推奨のため、gcloud storage を使います。
+
+■ Cloud Shell でプロジェクトを合わせる
+  gcloud config set project line-event-manager
+
+■ バケット一覧（ここで名前を確認する）
+  gcloud storage buckets list
+
+  ※「gcloud storage ls」だけ引数なしだとエラーになります（URL が必要）。
+  ※ Firebase のデフォルト・バケット名は多くの場合:
+    line-event-manager.appspot.com
+    または
+    line-event-manager.firebasestorage.app
+    のどちらかが一覧に出ます。
+
+■ CORS を適用（リポジトリの storage-cors.json を Cloud Shell にアップロードするか、
+  次の内容を storage-cors.json としてホームに保存してから実行）
+
+  gcloud storage buckets update gs://line-event-manager.appspot.com --cors-file=storage-cors.json
+
+  一覧に出た名前が firebasestorage.app の方なら:
+  gcloud storage buckets update gs://line-event-manager.firebasestorage.app --cors-file=storage-cors.json
+
+■ 確認
+  gcloud storage buckets describe gs://（上と同じバケット名） --format="json(cors_config)"
+
+■ 権限エラーになる場合
+  Cloud Console → IAM で、操作中の Google アカウントに
+  「Storage 管理者」または「Storage バケットの更新」権限があるか確認してください。
+
+設定後、ブラウザをスーパーリロードしてアイコンアップロードを再試行してください。

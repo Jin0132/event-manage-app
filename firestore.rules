@@ -1,0 +1,159 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- ヘルパー関数 ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // 承認済み参加者または主催者か判定（詳細データの保護用）
+    // 承認済みのほか、RSVP 確定済み（出席/欠席/未定）も「一覧・チャット等の閲覧」に含める
+    function isApprovedOrOrganizer(eventId) {
+      let isApproved = exists(/databases/$(database)/documents/events/$(eventId)/participants/$(request.auth.uid)) &&
+                       get(/databases/$(database)/documents/events/$(eventId)/participants/$(request.auth.uid)).data.status in [
+                         'approved',
+                         '出席',
+                         '欠席',
+                         '未定'
+                       ];
+      return isSignedIn() && (isApproved || isOrganizerByAuthUid(eventId));
+    }
+
+    // 主催者判定（古いID形式にも対応した堅牢版）
+    function isOrganizerByAuthUid(eventId) {
+      let d = get(/databases/$(database)/documents/events/$(eventId)).data;
+      return isSignedIn() && (
+        d.organizer_auth_uid == request.auth.uid ||
+        d.organizerId == request.auth.uid ||
+        d.organizer_uid == request.auth.uid
+      );
+    }
+
+    // 未解散か、解散かつ猶予内（will_delete_at 優先、無ければ dissolved_at+72h）なら photos/messages 等を許可
+    function eventAllowsSocialAccess(eventId) {
+      let d = get(/databases/$(database)/documents/events/$(eventId)).data;
+      let dissolved = 'is_dissolved' in d && d.is_dissolved == true;
+      let activeOk = !dissolved && d.is_active != false;
+      let graceByWillDelete = dissolved
+        && 'will_delete_at' in d
+        && d.will_delete_at is timestamp
+        && request.time < d.will_delete_at;
+      let graceByDissolvedAt = dissolved
+        && (!('will_delete_at' in d) || !(d.will_delete_at is timestamp))
+        && d.dissolved_at is timestamp
+        && request.time < d.dissolved_at + duration.value(72, 'h');
+      return activeOk || graceByWillDelete || graceByDissolvedAt;
+    }
+
+    // ユーザープロフィール（本人のみ）
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // クライアント解析ログ（件数カウント・通知フロー計測。本人のみ create）
+    match /analytics_events/{docId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.eventName is string
+        && request.resource.data.eventName in [
+          'permission_requested',
+          'permission_granted',
+          'permission_denied',
+          'token_registered',
+          'notification_clicked'
+        ]
+        && request.resource.data.source == 'client';
+      allow read, update, delete: if false;
+    }
+
+    // collectionGroup('participants') での参加済みイベント取得用
+    match /{path=**}/participants/{participantUid} {
+      // ドキュメントID一致、または participantUid フィールド一致のときのみ読み取り許可
+      allow read: if isSignedIn()
+        && (
+          request.auth.uid == participantUid
+          || (resource.data.participantUid is string && resource.data.participantUid == request.auth.uid)
+        );
+    }
+
+    // イベント本体のルール
+    match /events/{eventId} {
+      // 招待URLからの閲覧を許可（ログイン不要の閲覧モード対応）
+      allow read: if true;
+      
+      allow create: if isSignedIn() && 
+                    request.resource.data.organizer_auth_uid == request.auth.uid;
+
+      allow update: if isOrganizerByAuthUid(eventId);
+
+      // 手動 delete: 主催者（organizer_auth_uid）のみ。TTL 自動削除はバックエンド処理でルール外。
+      allow delete: if isSignedIn() && resource.data.organizer_auth_uid == request.auth.uid;
+
+      // --- 参加者リスト ---
+      match /participants/{participantId} {
+        // 参加者一覧は閲覧のみログイン不要（投稿系は下記 create/update/delete で制限）
+        allow read: if true;
+        allow create: if isSignedIn()
+          && request.resource.data.status in ['pending', 'approved', '出席', '欠席', '未定']
+          && request.resource.data.participantUid == request.auth.uid
+          && participantId == request.auth.uid
+          && eventAllowsSocialAccess(eventId);
+        // 承認（pending -> approved）は主催者のみ
+        allow update: if isOrganizerByAuthUid(eventId) || (isSignedIn() && request.auth.uid == participantId);
+        // 拒否や削除
+        allow delete: if isOrganizerByAuthUid(eventId) || (isSignedIn() && request.auth.uid == participantId);
+      }
+
+      // --- 写真・メッセージ（承認された人だけが閲覧・投稿可能） ---
+      match /photos/{photoId} {
+        allow read, create: if isApprovedOrOrganizer(eventId) && eventAllowsSocialAccess(eventId);
+        allow delete: if isOrganizerByAuthUid(eventId);
+      }
+
+      match /messages/{messageId} {
+        allow read, create: if isApprovedOrOrganizer(eventId) && eventAllowsSocialAccess(eventId);
+        allow delete: if isOrganizerByAuthUid(eventId);
+      }
+
+      match /directMessages/{dmId} {
+        allow read: if isSignedIn()
+          && eventAllowsSocialAccess(eventId)
+          && (
+            isOrganizerByAuthUid(eventId) ||
+            (resource.data.dmPeerIds is list && resource.data.dmPeerIds.hasAny([request.auth.uid])) ||
+            resource.data.targetParticipantUid == request.auth.uid
+          );
+        allow create: if eventAllowsSocialAccess(eventId)
+          && (
+            isOrganizerByAuthUid(eventId) ||
+            isApprovedOrOrganizer(eventId)
+          )
+          && request.resource.data.senderAuthUid == request.auth.uid
+          && request.resource.data.targetParticipantUid is string
+          && request.resource.data.targetParticipantUid != request.auth.uid
+          && request.resource.data.dmPeerIds is list
+          && request.resource.data.dmPeerIds.size() == 2
+          && request.resource.data.dmPeerIds.hasAll([request.auth.uid, request.resource.data.targetParticipantUid]);
+      }
+
+      // 将来の Cloud Functions 通知トリガー用（プレースホルダー。クライアントは追記のみ）
+      match /notificationTriggers/{triggerId} {
+        allow create: if isSignedIn()
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.triggerType is string
+          && request.resource.data.triggerType in [
+            'event_info_updated',
+            'photo_uploaded',
+            'event_dissolved'
+          ]
+          && (
+            (request.resource.data.triggerType == 'event_info_updated' && isOrganizerByAuthUid(eventId)) ||
+            (request.resource.data.triggerType == 'event_dissolved' && isOrganizerByAuthUid(eventId)) ||
+            (request.resource.data.triggerType == 'photo_uploaded' && isApprovedOrOrganizer(eventId))
+          );
+        allow read, update, delete: if false;
+      }
+    }
+  }
+}
