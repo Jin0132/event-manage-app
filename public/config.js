@@ -4,6 +4,7 @@ window.ENABLE_PREMIUM_FEATURES = false;
 /**
  * Firebase Web アプリ設定（Firebase コンソール → プロジェクトの設定 → 全般 → マイアプリ）
  * 01-config-state-dom.js はこのオブジェクトを参照します。
+ * ルートの config.js と同一内容に保つこと（Vite は public/ を /config.js として配信）。
  */
 window.FIREBASE_WEB_CONFIG = {
   apiKey: "AIzaSyAX1AS8PnUKSrESK6K_yIc8yD4OPOBwQuA",
